@@ -1,9 +1,13 @@
+/* eslint-disable */
+
 const express = require("express")
 const bodyParser = require("body-parser")
 const mongodb = require("mongodb")
 
 const app = express()
 app.use(bodyParser.json())
+
+require('./app/restaurants/restaurantRoutes')(app, {})
 
 // Create a database constiable outside of the database connection callback to reuse the connection pool in your app.
 var db;
