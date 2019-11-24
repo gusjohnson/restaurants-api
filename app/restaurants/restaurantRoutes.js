@@ -1,18 +1,8 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-console */
-
 'use strict'
-const mongodb = require('mongodb')
-const RESTAURANTS_COLLECTION = 'restaurants'
-const ObjectID = mongodb.ObjectID
+const mongoose = require('mongoose')
+const Restaurant = mongoose.model('Restaurant')
 
-module.exports = function(app, db) {
-    // Generic error handler used by all endpoints.
-  function handleError(res, reason, message, code) {
-    console.log('ERROR: ' + reason)
-    res.status(code || 500).json({'error': message})
-  }
-
+module.exports = function(app) {
   app.get('/', (req, res) => res.send('jgj-restaurants-api'))
 
   /*  "/api/restaurants"
@@ -20,30 +10,26 @@ module.exports = function(app, db) {
   *    POST: creates a new restaurant
   */
 
-  app.get('/restaurants', function(req, res) {
-    db.collection(RESTAURANTS_COLLECTION).find({}).toArray(function(err, docs) {
-      if (err) {
-        handleError(res, err.message, 'Failed to get restaurants.')
-      } else {
-        res.status(200).json(docs)
-      }
-    })
+  app.get('/restaurants', async function(req, res) {
+    try {
+      const restaurants = await Restaurant.find(req.query)
+      res.status(200).json(restaurants)
+    } catch (e) {
+      console.error('Error occurred fetching restaurants', e)
+      res.status(500).json(response(500, 'Internal server error'))
+    }
   })
 
-  app.post('/restaurants', function(req, res) {
-    var newRestaurant = req.body
-    newRestaurant.createDate = new Date()
-
-    if (!req.body.name) {
-      handleError(res, 'Invalid user input', 'Must provide a name.', 400)
-    } else {
-      db.collection(RESTAURANTS_COLLECTION).insertOne(newRestaurant, function(err, doc) {
-        if (err) {
-          handleError(res, err.message, 'Failed to create new restaurant.')
-        } else {
-          res.status(201).json(doc.ops[0])
-        }
-      })
+  app.post('/restaurants', async function(req, res) {
+    try {
+      const newRestaurantReq = req.body
+      newRestaurantReq.creationDate = new Date()
+      const restaurant = new Restaurant(newRestaurantReq)
+      await restaurant.save()
+      res.status(201).json(restaurant)
+    } catch (e) {
+      console.error('Error occurred creating restaurant', e)
+      res.status(500).json(response(500, 'Internal server error'))
     }
   })
 
@@ -53,37 +39,49 @@ module.exports = function(app, db) {
   *    DELETE: deletes restaurant by id
   */
 
-  app.get('/restaurants/:id', function(req, res) {
-    db.collection(RESTAURANTS_COLLECTION).findOne({ _id: new ObjectID(req.params.id) }, function(err, doc) {
-      if (err) {
-        handleError(res, err.message, 'Failed to get restaurant')
+  app.get('/restaurants/:id', async function(req, res) {
+    try {
+      const restaurant = await Restaurant.findOne({'_id': req.params.id})
+      if (restaurant) {
+        res.status(200).json(restaurant)
       } else {
-        res.status(200).json(doc)
+        res.status(404).json(response(404, `Restaurant ${req.params.id} not found`))
       }
-    })
+    } catch (e) {
+      console.error(`Error occurred getting restaurant ${req.params.id}`, e)
+      res.status(500).json(response(500, 'Internal server error'))
+    }
   })
 
-  app.put('/restaurants/:id', function(req, res) {
-    const updateDoc = req.body
-    delete updateDoc._id
-
-    db.collection(RESTAURANTS_COLLECTION).updateOne({_id: new ObjectID(req.params.id)}, updateDoc, function(err, doc) {
-      if (err) {
-        handleError(res, err.message, 'Failed to update restaurant')
+  app.put('/restaurants/:id', async function(req, res) {
+    try {
+      const restaurant = await Restaurant.findOne({'_id': req.params.id})
+      if (restaurant) {
+        restaurant.name = req.body.name
+        restaurant.address = req.body.address
+        restaurant.googleRating = req.body.googleRating
+        restaurant.userRating = req.body.userRating
+        restaurant.lane = req.body.lane
+        await restaurant.save()
+        res.status(200).json(restaurant)
       } else {
-        updateDoc._id = req.params.id
-        res.status(200).json(updateDoc)
+        res.status(404).json(response(404, `Restaurant ${req.params.id} not found`))
       }
-    })
+    } catch (e) {
+      console.error(`Error occurred getting restaurant ${req.params.id}`, e)
+      res.status(500).json(response(500, 'Internal server error'))
+    }
   })
 
-  app.delete('/restaurants/:id', function(req, res) {
-    db.collection(RESTAURANTS_COLLECTION).deleteOne({_id: new ObjectID(req.params.id)}, function(err, result) {
-      if (err) {
-        handleError(res, err.message, 'Failed to delete contact')
-      } else {
-        res.status(200).json(req.params.id)
-      }
-    })
+  app.delete('/restaurants/:id', async function(req, res) {
+    await Restaurant.deleteOne({'_id': req.params.id})
+    res.status(204).json()
   })
+}
+
+function response(code, message) {
+  return {
+    statusCode: code,
+    message: message
+  }
 }
