@@ -2,27 +2,24 @@
 
 const express = require("express")
 const bodyParser = require("body-parser")
-const mongodb = require("mongodb")
+const mongoose = require("mongoose")
 
 const app = express()
 app.use(bodyParser.json())
 
-// Create a database constiable outside of the database connection callback to reuse the connection pool in your app.
-var db;
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/test', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
 
-// Connect to the database before starting the application server.
-mongodb.MongoClient.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/test", function (err, client) {
-  if (err) {
-    console.log(err)
-    process.exit(1)
-  }
-
-  // Save database object from the callback for reuse.
-  db = client.db()
+var db = mongoose.connection
+db.on('error', console.error.bind(console, 'connection error:'))
+db.once('open', function() {
   console.log("Database connection ready")
 
   // Initialize the app.
-  require('./app/restaurants/restaurantRoutes')(app, db)
+  require('./app/restaurants/Restaurant')
+  require('./app/restaurants/restaurantRoutes')(app)
   const server = app.listen(process.env.PORT || 8080, function () {
     const port = server.address().port
     console.log("App now running on port", port)
