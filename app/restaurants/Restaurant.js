@@ -9,6 +9,7 @@ const restaurantSchema = new Schema({
   googleRating:   Number,
   userRating: Number,
   lane: String,
+  displayOrder: Number,
   creationDate: Date,
   createdBy: String
 })

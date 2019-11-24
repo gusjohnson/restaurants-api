@@ -62,6 +62,7 @@ module.exports = function(app) {
         restaurant.googleRating = req.body.googleRating
         restaurant.userRating = req.body.userRating
         restaurant.lane = req.body.lane
+        restaurant.displayOrder = req.body.displayOrder
         await restaurant.save()
         res.status(200).json(restaurant)
       } else {
