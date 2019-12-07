@@ -1,4 +1,5 @@
 'use strict'
+
 const controller = require('./restaurantController.js')
 
 module.exports = function(app) {
