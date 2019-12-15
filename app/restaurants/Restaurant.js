@@ -11,7 +11,7 @@ const restaurantSchema = new Schema({
   lane: String,
   displayOrder: Number,
   creationDate: Date,
-  createdBy: String
+  userId: String
 })
 
 mongoose.model('Restaurant', restaurantSchema)
